@@ -20,6 +20,16 @@ class ApkTool:
     def cpu(self):
         _stdout=self.__exec_sh("adb shell getprop  | grep abilist")
         print(_stdout)
+    def ps(self):
+        _stdout=self.__exec_sh(f"""adb shell ps""")
+        print(_stdout)
+    def su(self,*cmd):
+        _stdout=self.__exec_sh(f"""adb shell su -c {" ".join(cmd)}""")
+        print(_stdout)
+    def proc_env(self,pid):
+        self.su(fr"cat /proc/{pid}/environ | tr '\000' '\n'""")
+    def proc_cwd(self,pid):
+        self.su(fr"ls -l /proc/{pid}/cwd""")
     def __exec_sh(self,cmd):
         out_put=subprocess.run(cmd,shell=True,capture_output=True)
         if  out_put.returncode:
