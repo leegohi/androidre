@@ -38,5 +38,7 @@ class ApkTool:
             import sys
             sys.exit() 
         return out_put.stdout.decode("utf-8")
-if __name__ == "__main__":
+def main():
     fire.Fire(ApkTool)
+if __name__ == "__main__":
+    main()
