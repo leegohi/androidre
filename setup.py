@@ -21,7 +21,7 @@ setup(
     install_requires=install_requires(),
     include_package_data=True,
     package_data={
-        'androidre': ['sign.jar'],
+        'androidre': ['sign.jar','apktool.jar'],
     },
     license='Apache 2.0',
     classifiers=[

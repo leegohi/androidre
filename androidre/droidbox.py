@@ -5,6 +5,13 @@ import re
 import os
 base_dir=os.path.dirname(__file__)
 class ApkTool:
+    """
+    remember add the android buildtools to env:
+    export ANDROID_HOME=/Users/$USER/Library/Android/sdk
+    export PATH=${PATH}:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/30.0.3
+    """
+    def __init__(self):
+        self.apktool=os.path.join(base_dir,"apktool.jar")
     def pull(self):
         """
         pull currently opened apk in android to computer 
@@ -72,14 +79,14 @@ class ApkTool:
         """ensure apktool in env, decode apk:
         e.g. apktools d(ecode) sample.apk  -o outdir
         """
-        self.__exec_sh(f"apktool d {apk}  -o {apk}_d",show_output_realtime=True)
+        self.__exec_sh(f"java -jar {self.apktool} d {apk}  -o {apk}_d",show_output_realtime=True)
     def b(self,apk_d):
         """ensure apktool in env, encode apk:
         e.g. apktools b(uild)  inputdir  out.apk
         """
         apk_name=os.path.split(apk_d.strip("_d"))[-1]
         print("output:",apk_name)
-        self.__exec_sh(f"apktool b {apk_d}  {apk_name}.apk",show_output_realtime=True)
+        self.__exec_sh(f"java -jar {self.apktool} b {apk_d}  {apk_name}.apk",show_output_realtime=True)
     def sign(self,apk):
         """
         from:https://github.com/appium-boneyard/sign
@@ -87,10 +94,16 @@ class ApkTool:
         """
         sign_jar=os.path.join(base_dir,"sign.jar")
         self.__exec_sh(f"""java -jar {sign_jar} {apk}""",show_output_realtime=True)
+    def j2d(self,cls):
+        """
+        java class byte code  to dex byte code 
+        dx --dex --output=Hello.dex Hello.class
+        """
+        self.__exec_sh("dx --dex --output={cls}.dex {cls}",show_output_realtime=True)
     def __exec_sh(self,cmd,show_output_realtime=False):
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
-            stderr = STDOUT, shell = True)
+            stderr = STDOUT, shell = True)      
             while p.poll() is None:
                 line = p.stdout.readline().decode("utf-8")
                 print(line)
