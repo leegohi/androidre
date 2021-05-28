@@ -1,4 +1,5 @@
 import subprocess
+from subprocess import Popen, PIPE, STDOUT
 import fire
 import re
 class ApkTool:
@@ -18,13 +19,24 @@ class ApkTool:
         print(_stdout)
         apk_path=re.findall("codePath\=(.*)",_stdout)[0].strip()
         print("apk path:",apk_path)
-        _stdout=self.__exec_sh(f"adb pull {apk_path}/base.apk ./{package_name}.apk")
-        print(_stdout)
+        _stdout=self.__exec_sh(f"adb pull {apk_path}/base.apk ./{package_name}.apk",show_output_realtime=True)
     def cpu(self):
         """
         show android architecture 32bit or 64bit?
         """
         _stdout=self.__exec_sh("adb shell getprop  | grep abilist")
+        print(_stdout)
+    def version(self):
+        """
+        show android linux kernel version
+        """
+        _stdout=self.__exec_sh("adb shell cat /proc/version")
+        print(_stdout)
+    def db(self):
+        """
+        show is debuggable?
+        """
+        _stdout=self.__exec_sh("adb shell getprop ro.debuggable")
         print(_stdout)
     def ps(self):
         """
@@ -54,7 +66,27 @@ class ApkTool:
         droidbox proc_cwd 80
         """
         self.su(fr"ls -l /proc/{pid}/cwd""")
-    def __exec_sh(self,cmd):
+    def d(self,apk):
+        """ensure apktool in env, decode apk:
+        e.g. apktools d(ecode) sample.apk  -o outdir
+        """
+        self.__exec_sh(f"apktool d {apk}  -o {apk}_d",show_output_realtime=True)
+    def b(self,apk_d):
+        """ensure apktool in env, encode apk:
+        e.g. apktools b(uild)  inputdir  out.apk
+        """
+        import os
+        apk_name=os.path.split(apk_d.strip("_d"))[-1]
+        print("output:",apk_name)
+        self.__exec_sh(f"apktool b {apk_d}  {apk_name}.apk",show_output_realtime=True)
+    def __exec_sh(self,cmd,show_output_realtime=False):
+        if show_output_realtime:
+            p = Popen(cmd, stdout = PIPE, 
+            stderr = STDOUT, shell = True)
+            while p.poll() is None:
+                line = p.stdout.readline().decode("utf-8")
+                print(line)
+            return 
         out_put=subprocess.run(cmd,shell=True,capture_output=True)
         if  out_put.returncode:
             print("exec cmd fail:",cmd)
