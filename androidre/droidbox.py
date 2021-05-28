@@ -2,6 +2,8 @@ import subprocess
 from subprocess import Popen, PIPE, STDOUT
 import fire
 import re
+import os
+base_dir=os.path.dirname(__file__)
 class ApkTool:
     def pull(self):
         """
@@ -75,10 +77,16 @@ class ApkTool:
         """ensure apktool in env, encode apk:
         e.g. apktools b(uild)  inputdir  out.apk
         """
-        import os
         apk_name=os.path.split(apk_d.strip("_d"))[-1]
         print("output:",apk_name)
         self.__exec_sh(f"apktool b {apk_d}  {apk_name}.apk",show_output_realtime=True)
+    def sign(self,apk):
+        """
+        from:https://github.com/appium-boneyard/sign
+        java -jar sign.jar my.apk
+        """
+        sign_jar=os.path.join(base_dir,"sign.jar")
+        self.__exec_sh(f"""java -jar {sign_jar} {apk}""",show_output_realtime=True)
     def __exec_sh(self,cmd,show_output_realtime=False):
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
@@ -86,6 +94,7 @@ class ApkTool:
             while p.poll() is None:
                 line = p.stdout.readline().decode("utf-8")
                 print(line)
+            p.wait()
             return 
         out_put=subprocess.run(cmd,shell=True,capture_output=True)
         if  out_put.returncode:
