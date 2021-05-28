@@ -100,6 +100,10 @@ class ApkTool:
         dx --dex --output=Hello.dex Hello.class
         """
         self.__exec_sh("dx --dex --output={cls}.dex {cls}",show_output_realtime=True)
+    def ip(self):
+        """"show android phone ip"
+        """
+        self.__exec_sh("""adb shell ip route | awk '{print $9}'""",show_output_realtime=True)
     def __exec_sh(self,cmd,show_output_realtime=False):
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
