@@ -16,8 +16,10 @@ class ApkTool:
         """
         pull currently opened apk in android to computer 
         """
-        _stdout=self.__exec_sh("adb shell dumpsys activity top")
-        package_name=re.findall("TASK\s+(.*?)\s+id\=",_stdout)
+        #_stdout=self.__exec_sh("adb shell dumpsys activity top")
+        #package_name=re.findall("TASK\s+(.*?)\s+id\=",_stdout)
+        _stdout=self.__exec_sh("adb shell dumpsys activity activities | sed -En -e '/Running activities/,/Run #0/p'")
+        package_name=re.findall("TaskRecord.*\=(.*?)\s+U\=",_stdout)
         if not package_name or package_name[0]=="null":
             print("can not find package","raw output is:")
             print(_stdout)
