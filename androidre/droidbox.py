@@ -61,6 +61,7 @@ class ApkTool:
         """
         _stdout=self.__exec_sh(f"""adb shell su -c {" ".join(cmd)}""")
         print(_stdout)
+        return _stdout
     def proc_env(self,pid):
         """
         show process  environment by pid
@@ -104,6 +105,16 @@ class ApkTool:
         """"show android phone ip"
         """
         self.__exec_sh("""adb shell ip route | awk '{print $9}'""",show_output_realtime=True)
+    def sfs(self,frida_server_path):
+        """start frida server on remote mobile phone
+        """
+        name=os.path.split(frida_server_path)[-1]
+        print("frida_server_binary:",name)
+        self.__exec_sh(f"adb push {frida_server_path} /data/local/tmp/",show_output_realtime=True)
+        print("set x privilege to",name)
+        self.su(f"chmod +x /data/local/tmp/{name}")
+        print("start ",name)
+        self.su(f"/data/local/tmp/{name} &")
     def __exec_sh(self,cmd,show_output_realtime=False):
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
