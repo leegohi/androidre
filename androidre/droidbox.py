@@ -117,6 +117,8 @@ class ApkTool:
         self.su(f"chmod +x /data/local/tmp/{name}")
         print("start ",name)
         self.su(f"/data/local/tmp/{name} &")
+    def wifi(self):
+        self.su(f"cat  /data/misc/wifi/*.conf")
     def __exec_sh(self,cmd,show_output_realtime=False):
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
