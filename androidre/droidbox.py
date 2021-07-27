@@ -3,7 +3,16 @@ from subprocess import Popen, PIPE, STDOUT
 import fire
 import re
 import os
+import urllib.request
+import io
+
 base_dir=os.path.dirname(__file__)
+
+def get_url_file_name():
+    from urllib.parse import unquote, urlparse
+    from pathlib import PurePosixPath
+    return PurePosixPath(
+            unquote(urlparse(url).path)).parts[-1]
 class ApkTool:
     """
     remember add the android buildtools to env:
@@ -61,7 +70,7 @@ class ApkTool:
         e.g.
         droidbox su cat /proc/26519/environ
         """
-        _stdout=self.__exec_sh(f"""adb shell su -c {" ".join(cmd)}""")
+        _stdout=self.__exec_sh(f"""adb shell su -c '{" ".join(cmd)}'""",show_output_realtime=True)
         print(_stdout)
         return _stdout
     def proc_env(self,pid):
@@ -107,19 +116,40 @@ class ApkTool:
         """"show android phone ip"
         """
         self.__exec_sh("""adb shell ip route | awk '{print $9}'""",show_output_realtime=True)
-    def sfs(self,frida_server_path):
+    def sfs(self,frida_server_path=None,arki=""):
         """start frida server on remote mobile phone
         """
+        if not frida_server_path:
+            f=self.__install("frida")
+            req=self.__install("requests")
+            f_ver=f.__version__
+            url=f"https://github.com/frida/frida/releases/download/{f_ver}/frida-server-{f_ver}-android-arm{arki}.xz"
+            print("download url:",f_ver)
+            fname=f"frida-server-{f_ver}-android-arm{arki}"
+            print("download frida-server",f_ver)
+            response = urllib.request.urlopen(url)
+            import lzma
+            decompress_data=lzma.decompress(response.read())
+            with open(fname,"wb") as f:
+                f.write(decompress_data)
+            frida_server_path=fname
         name=os.path.split(frida_server_path)[-1]
         print("frida_server_binary:",name)
         self.__exec_sh(f"adb push {frida_server_path} /data/local/tmp/",show_output_realtime=True)
         print("set x privilege to",name)
         self.su(f"chmod +x /data/local/tmp/{name}")
         print("start ",name)
-        self.su(f"/data/local/tmp/{name} &")
+        self.su(f"/data/local/tmp/{name} 2>&1")
     def wifi(self):
         self.su(f"cat  /data/misc/wifi/*.conf")
+    def __install(self,package_name):
+        try:
+            return __import__(package_name)
+        except:
+            import os 
+            os.system(f"pip install {package_name}")
     def __exec_sh(self,cmd,show_output_realtime=False):
+        print(cmd)
         if show_output_realtime:
             p = Popen(cmd, stdout = PIPE, 
             stderr = STDOUT, shell = True)      
