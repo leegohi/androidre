@@ -13,6 +13,29 @@ def get_url_file_name():
     from pathlib import PurePosixPath
     return PurePosixPath(
             unquote(urlparse(url).path)).parts[-1]
+def download_with_bar(url):
+    resp = urllib.request.urlopen(url)
+    length = resp.getheader('content-length')
+    if length:
+        length = int(length)
+        blocksize = max(4096, length//100)
+    else:
+        blocksize = 1000000 # just made something up
+    print("total size:","%sMB"%int(length/1024/1024),"block size:","%sByte"%blocksize)
+    buf = io.BytesIO()
+    size = 0
+    while True:
+        buf_part = resp.read(blocksize)
+        if not buf_part:
+            break
+        buf.write(buf_part)
+        size += len(buf_part)
+        if length:
+            print('{:.2f}%\r downloading:'.format(int(size/length*100)), end='')
+    buf.seek(0)
+    print()
+    return buf
+
 class ApkTool:
     """
     remember add the android buildtools to env:
@@ -124,17 +147,18 @@ class ApkTool:
             req=self.__install("requests")
             f_ver=f.__version__
             url=f"https://github.com/frida/frida/releases/download/{f_ver}/frida-server-{f_ver}-android-arm{arki}.xz"
-            print("download url:",f_ver)
+            print("download url:",url)
             fname=f"frida-server-{f_ver}-android-arm{arki}"
-            print("download frida-server",f_ver)
-            response = urllib.request.urlopen(url)
+            print("download",fname)
+            response =download_with_bar(url)
             import lzma
+            print("decompress",fname)
             decompress_data=lzma.decompress(response.read())
             with open(fname,"wb") as f:
                 f.write(decompress_data)
             frida_server_path=fname
         name=os.path.split(frida_server_path)[-1]
-        print("frida_server_binary:",name)
+        print("binary:",name)
         self.__exec_sh(f"adb push {frida_server_path} /data/local/tmp/",show_output_realtime=True)
         print("set x privilege to",name)
         self.su(f"chmod +x /data/local/tmp/{name}")
@@ -157,6 +181,9 @@ class ApkTool:
                 line = p.stdout.readline().decode("utf-8")
                 print(line)
             p.wait()
+            if p.returncode:
+                import sys
+                sys.exit()
             return 
         out_put=subprocess.run(cmd,shell=True,capture_output=True)
         if  out_put.returncode:
