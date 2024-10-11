@@ -163,7 +163,7 @@ class ApkTool:
         print("set x privilege to",name)
         self.su(f"chmod +x /data/local/tmp/{name}")
         print("start ",name)
-        self.su(f"/data/local/tmp/{name} 2>&1")
+        self.su(f"nohup /data/local/tmp/{name} 2>&1 &")
     def wifi(self):
         self.su(f"cat  /data/misc/wifi/*.conf")
     def __install(self,package_name):
@@ -172,6 +172,7 @@ class ApkTool:
         except:
             import os 
             os.system(f"pip install {package_name}")
+            return __import__(package_name)
     def __exec_sh(self,cmd,show_output_realtime=False):
         print(cmd)
         if show_output_realtime:
