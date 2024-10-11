@@ -5,14 +5,14 @@ from setuptools import (
 def install_requires():
     return ["fire"]
 setup(
-    name='droidbox',
+    name='wallebox',
     url="""https://github.com/leegohi/androidre
         """,
     version="1.0",
     description='A android reverse tools for spider.',
     entry_points={
         'console_scripts': [
-            'droidbox = androidre.droidbox:main',
+            'wallebox = wallebox.droidbox:main',
         ],
     },
     author='walle',
@@ -21,7 +21,7 @@ setup(
     install_requires=install_requires(),
     include_package_data=True,
     package_data={
-        'androidre': ['sign.jar','apktool.jar'],
+        'wallebox': ['sign.jar','apktool.jar'],
     },
     license='Apache 2.0',
     classifiers=[
