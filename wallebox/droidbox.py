@@ -8,11 +8,7 @@ import io
 
 base_dir=os.path.dirname(__file__)
 
-def get_url_file_name():
-    from urllib.parse import unquote, urlparse
-    from pathlib import PurePosixPath
-    return PurePosixPath(
-            unquote(urlparse(url).path)).parts[-1]
+
 def download_with_bar(url):
     resp = urllib.request.urlopen(url)
     length = resp.getheader('content-length')
@@ -44,6 +40,7 @@ class ApkTool:
     """
     def __init__(self):
         self.apktool=os.path.join(base_dir,"apktool.jar")
+        self.pypi=" -i https://mirrors.cloud.tencent.com/pypi/simple"
     def pull(self):
         """
         pull currently opened apk in android to computer 
@@ -67,15 +64,16 @@ class ApkTool:
         """
         show android architecture 32bit or 64bit?
         """
-        _stdout=self.__exec_sh("adb shell getprop  | grep abilist")
+        _stdout=self.__exec_sh("adb shell getprop  | grep ro.product.cpu.abi")
         print(_stdout)
-    def version(self):
+        return _stdout
+    def kernel(self):
         """
         show android linux kernel version
         """
         _stdout=self.__exec_sh("adb shell cat /proc/version")
         print(_stdout)
-    def db(self):
+    def debuggable(self):
         """
         show is debuggable?
         """
@@ -87,13 +85,13 @@ class ApkTool:
         """
         _stdout=self.__exec_sh(f"""adb shell ps""")
         print(_stdout)
-    def su(self,*cmd):
+    def su(self,*cmd,show_output_realtime=True):
         """
         use super user privilege to execute shell command on android
         e.g.
         droidbox su cat /proc/26519/environ
         """
-        _stdout=self.__exec_sh(f"""adb shell su -c '{" ".join(cmd)}'""",show_output_realtime=True)
+        _stdout=self.__exec_sh(f"""adb shell su -c '{" ".join(cmd)}'""",show_output_realtime=show_output_realtime)
         print(_stdout)
         return _stdout
     def proc_env(self,pid):
@@ -139,39 +137,60 @@ class ApkTool:
         """"show android phone ip"
         """
         self.__exec_sh("""adb shell ip route | awk '{print $9}'""",show_output_realtime=True)
-    def sfs(self,frida_server_path=None,arki=""):
+    def push_frida(self,f_ver=None,arki=""):
         """start frida server on remote mobile phone
         """
-        if not frida_server_path:
+        if not arki:
+            std_text=self.cpu()
+            if "arm64" in std_text:
+                arki="64"
+        if not f_ver:
             f=self.__install("frida")
-            req=self.__install("requests")
             f_ver=f.__version__
             url=f"https://github.com/frida/frida/releases/download/{f_ver}/frida-server-{f_ver}-android-arm{arki}.xz"
             print("download url:",url)
             fname=f"frida-server-{f_ver}-android-arm{arki}"
-            print("download",fname)
-            response =download_with_bar(url)
-            import lzma
-            print("decompress",fname)
-            decompress_data=lzma.decompress(response.read())
-            with open(fname,"wb") as f:
-                f.write(decompress_data)
+            if not os.path.exists(fname):
+                print("download",fname)
+                response =download_with_bar(url)
+                import lzma
+                print("decompress",fname)
+                decompress_data=lzma.decompress(response.read())
+                with open(fname,"wb") as f:
+                    f.write(decompress_data)
             frida_server_path=fname
+        else:
+            frida_server_path=f"frida-server-{f_ver}-android-arm{arki}.xz"
         name=os.path.split(frida_server_path)[-1]
         print("binary:",name)
         self.__exec_sh(f"adb push {frida_server_path} /data/local/tmp/",show_output_realtime=True)
         print("set x privilege to",name)
         self.su(f"chmod +x /data/local/tmp/{name}")
         print("start ",name)
-        self.su(f"nohup /data/local/tmp/{name} 2>&1 &")
+        self.su(f"/data/local/tmp/{name} &",show_output_realtime=True)
     def wifi(self):
         self.su(f"cat  /data/misc/wifi/*.conf")
+    def dbinfo(self,package_name):
+        """
+        show package db info
+        """
+        self.__exec_sh(f"adb shell dumpsys dbinfo {package_name}")
+    def start_activity(self,activity_name):
+        """
+        start activity wait for debug
+        e.g.
+        adb shell am start-activity -D -N com.idormy.sms.forwarder/.activity.SplashActivity
+        """
+        self.__exec_sh(f"adb shell am start-activity -D -N  {activity_name}")
+    def frida_spawn(self,package_name,js_path):
+        self.__exec_sh(f"frida -U -f {package_name}  -l {js_path}")
+    def frida_attach(self,pid,js_path):
+        self.__exec_sh(f"frida -U -p {pid}  -l {js_path}")
     def __install(self,package_name):
         try:
             return __import__(package_name)
         except:
-            import os 
-            os.system(f"pip install {package_name}")
+            self.__exec_sh(f"pip install {package_name} {self.pypi}",show_output_realtime=True)
             return __import__(package_name)
     def __exec_sh(self,cmd,show_output_realtime=False):
         print(cmd)
